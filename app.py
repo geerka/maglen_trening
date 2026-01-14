@@ -28,6 +28,15 @@ except Exception as e:
 # File pre ukladanie cvikov
 EXERCISES_FILE = 'exercises.json'
 
+# Inicializuj exercises.json ak neexistuje
+if not os.path.exists(EXERCISES_FILE):
+    try:
+        with open(EXERCISES_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f)
+        print("Created empty exercises.json")
+    except Exception as e:
+        print(f"Warning: Could not create exercises.json: {e}")
+
 def load_exercises():
     """Načítaj cviky z JSON súboru"""
     try:
@@ -389,6 +398,21 @@ def edit_detailed_explanation(exercise_id):
     
     admin = is_admin()
     return render_template('edit_detailed_explanation.html', exercise=exercise, admin=admin)
+
+# Global error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return {'error': 'Not found'}, 404
+
+@app.errorhandler(500)
+def server_error(error):
+    print(f"Server error: {error}")
+    return {'error': 'Internal server error'}, 500
+
+@app.before_request
+def before_request():
+    """Initialize app on first request"""
+    pass
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
