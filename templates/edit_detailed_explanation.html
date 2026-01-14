@@ -290,135 +290,155 @@
 
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.js"></script>
     <script>
-        // Inicializuj Quill editor na DOMContentLoaded
+        let quill; // Global variable
+        
         document.addEventListener('DOMContentLoaded', function() {
-            // Inicializuj Quill editor
-            const quill = new Quill('#editor', {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        ['bold', 'italic', 'underline', 'strike'],
-                        ['blockquote', 'code-block'],
-                        [{ 'header': 1 }, { 'header': 2 }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'script': 'sub'}, { 'script': 'super' }],
-                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                        [{ 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'align': [] }],
-                        ['link', 'image'],
-                        ['clean']
-                    ]
-                },
-                placeholder: 'Začnite písať detailný postup cviku...'
-            });
-
-            // Vyčistenie editora
-            document.getElementById('btn-clear').addEventListener('click', function() {
-                quill.setContents([]);
-            });
-
-            // Upload obrázka - zlepšený handler
-            quill.getModule('toolbar').addHandler('image', selectLocalImage);
+            console.log('DOM Content Loaded - inicializujem Quill');
             
-            function selectLocalImage() {
-                const input = document.createElement('input');
-                input.setAttribute('type', 'file');
-                input.setAttribute('accept', 'image/*');
+            // Check if editor element exists
+            const editorElement = document.getElementById('editor');
+            console.log('Editor element:', editorElement);
+            
+            if (!editorElement) {
+                console.error('Editor element not found!');
+                return;
+            }
+            
+            try {
+                // Initialize Quill
+                quill = new Quill('#editor', {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline', 'strike'],
+                            ['blockquote', 'code-block'],
+                            [{ 'header': 1 }, { 'header': 2 }],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'script': 'sub'}, { 'script': 'super' }],
+                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                            [{ 'size': ['small', false, 'large', 'huge'] }],
+                            [{ 'align': [] }],
+                            ['link', 'image'],
+                            ['clean']
+                        ]
+                    },
+                    placeholder: 'Začnite písať detailný postup cviku...'
+                });
                 
-                input.onchange = async function() {
-                    const file = input.files[0];
-                    if (!file) {
-                        console.log('Žiadny file vybraný');
+                console.log('Quill initialized successfully:', quill);
+                
+                // Setup image handler
+                quill.getModule('toolbar').addHandler('image', function() {
+                    console.log('Image handler clicked');
+                    selectLocalImage();
+                });
+                
+                // Setup clear button
+                const clearBtn = document.getElementById('btn-clear');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function() {
+                        console.log('Clear button clicked');
+                        quill.setContents([]);
+                    });
+                }
+                
+                // Setup form submit
+                const editorForm = document.getElementById('editor-form');
+                if (editorForm) {
+                    editorForm.onsubmit = function(e) {
+                        console.log('Form submitted');
+                        const content = quill.root.innerHTML;
+                        console.log('Content:', content);
+                        
+                        if (content === '<p><br></p>' || content === '') {
+                            alert('⚠️ Prosím, napíš niečo pred submitom');
+                            e.preventDefault();
+                            return false;
+                        }
+                        
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'text_content';
+                        hiddenInput.value = content;
+                        
+                        this.appendChild(hiddenInput);
+                        return true;
+                    };
+                }
+                
+            } catch (error) {
+                console.error('Error initializing Quill:', error);
+            }
+        });
+        
+        function selectLocalImage() {
+            console.log('selectLocalImage called');
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            
+            input.onchange = async function() {
+                const file = input.files[0];
+                if (!file) {
+                    console.log('No file selected');
+                    return;
+                }
+                
+                console.log('File selected:', file.name, 'Size:', file.size);
+                
+                const toolbar = document.querySelector('.ql-toolbar');
+                if (toolbar) toolbar.style.opacity = '0.5';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('{{ url_for("upload_image") }}', {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    });
+                    
+                    console.log('Upload response status:', response.status);
+                    
+                    if (!response.ok) {
+                        let errorMsg = response.statusText;
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) {}
+                        
+                        console.error('Upload error:', errorMsg);
+                        alert('❌ Chyba pri uploade: ' + errorMsg);
+                        if (toolbar) toolbar.style.opacity = '1';
                         return;
                     }
                     
-                    console.log('Vybraný súbor:', file.name, 'Veľkosť:', file.size);
+                    const data = await response.json();
+                    console.log('Upload response:', data);
                     
-                    // Disable button počas uploadu
-                    const toolbar = document.querySelector('.ql-toolbar');
-                    if (toolbar) toolbar.style.opacity = '0.5';
-                    
-                    try {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        
-                        console.log('Začína upload na:', '{{ url_for("upload_image") }}');
-                        
-                        const response = await fetch('{{ url_for("upload_image") }}', {
-                            method: 'POST',
-                            body: formData,
-                            credentials: 'same-origin'
-                        });
-                        
-                        console.log('Response status:', response.status);
-                        
-                        if (!response.ok) {
-                            let errorMsg = response.statusText;
-                            try {
-                                const errorData = await response.json();
-                                errorMsg = errorData.error || errorMsg;
-                            } catch (e) {}
-                            
-                            console.error('Upload error:', errorMsg);
-                            
-                            if (response.status === 401) {
-                                alert('❌ Nie si prihlásený ako admin!');
-                            } else {
-                                alert('❌ Chyba pri uploade: ' + errorMsg);
-                            }
-                            if (toolbar) toolbar.style.opacity = '1';
-                            return;
+                    if (data.location && quill) {
+                        const range = quill.getSelection();
+                        if (range) {
+                            quill.insertEmbed(range.index, 'image', data.location);
+                            quill.setSelection(range.index + 1);
                         }
-                        
-                        const data = await response.json();
-                        console.log('Upload response:', data);
-                        
-                        if (data.location) {
-                            // Vlož obrázok na pozíciu cursora
-                            const range = quill.getSelection();
-                            if (range) {
-                                quill.insertEmbed(range.index, 'image', data.location);
-                                // Posuň cursor za obrázok
-                                quill.setSelection(range.index + 1);
-                            }
-                            console.log('Obrázok vložený úspešne:', data.location);
-                        } else {
-                            alert('❌ Chyba: Žiadna URL v odpovedi');
-                        }
-                        
-                        if (toolbar) toolbar.style.opacity = '1';
-                    } catch (error) {
-                        console.error('Upload exception:', error);
-                        alert('❌ Chyba pri uploade: ' + error.message);
-                        const toolbar = document.querySelector('.ql-toolbar');
-                        if (toolbar) toolbar.style.opacity = '1';
+                        console.log('Image inserted:', data.location);
+                    } else {
+                        alert('❌ Chyba: Žiadna URL v odpovedi');
                     }
-                };
-                
-                input.click();
-            }
-
-            // Pri submite formulára, ulož HTML z editora do hidden input
-            document.getElementById('editor-form').onsubmit = function(e) {
-                const content = quill.root.innerHTML;
-                
-                // Ak editor je prázdny, zastavy submit
-                if (content === '<p><br></p>' || content === '') {
-                    alert('⚠️ Prosím, napíš niečo pred submitom');
-                    e.preventDefault();
-                    return false;
+                    
+                    if (toolbar) toolbar.style.opacity = '1';
+                } catch (error) {
+                    console.error('Upload exception:', error);
+                    alert('❌ Chyba pri uploade: ' + error.message);
+                    const toolbar = document.querySelector('.ql-toolbar');
+                    if (toolbar) toolbar.style.opacity = '1';
                 }
-                
-                // Vytvor hidden input pre HTML obsah
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'text_content';
-                hiddenInput.value = content;
-                
-                this.appendChild(hiddenInput);
-                return true;
-        };
-        }); // Koniec DOMContentLoaded
+            };
+            
+            input.click();
+        }
     </script>
 </body>
 </html>
