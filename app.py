@@ -56,7 +56,7 @@ def view_exercise(exercise_id):
     exercise = next((e for e in exercises if e['id'] == exercise_id), None)
     if not exercise:
         return redirect(url_for('index'))
-    return render_template('view_exercise.html', exercise=exercise)
+    return render_template('view_exercise.html', exercise=exercise, admin=session.get('admin', False))
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_exercise():
@@ -112,6 +112,91 @@ def delete_exercise(exercise_id):
     exercises = [e for e in exercises if e['id'] != exercise_id]
     save_data(exercises)
     return redirect(url_for('index'))
+
+@app.route('/detailed_explanation/<int:exercise_id>')
+def detailed_explanation(exercise_id):
+    exercises = load_data()
+    exercise = next((e for e in exercises if e['id'] == exercise_id), None)
+    if not exercise:
+        return redirect(url_for('index'))
+    return render_template('detailed_explanation.html', exercise=exercise)
+
+@app.route('/edit_detailed_explanation/<int:exercise_id>', methods=['GET', 'POST'])
+def edit_detailed_explanation(exercise_id):
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+    
+    exercises = load_data()
+    exercise = next((e for e in exercises if e['id'] == exercise_id), None)
+    if not exercise:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add_text':
+            text_content = request.form.get('text_content', '')
+            if text_content:
+                if 'detailed_explanation' not in exercise:
+                    exercise['detailed_explanation'] = []
+                exercise['detailed_explanation'].append({
+                    'type': 'text',
+                    'content': text_content
+                })
+                save_data(exercises)
+        
+        elif action == 'add_video':
+            video_url = request.form.get('video_url', '')
+            if video_url:
+                if 'detailed_explanation' not in exercise:
+                    exercise['detailed_explanation'] = []
+                exercise['detailed_explanation'].append({
+                    'type': 'video',
+                    'content': video_url
+                })
+                save_data(exercises)
+        
+        elif action == 'delete_item':
+            item_index = int(request.form.get('item_index', -1))
+            if 'detailed_explanation' in exercise and 0 <= item_index < len(exercise['detailed_explanation']):
+                exercise['detailed_explanation'].pop(item_index)
+                save_data(exercises)
+        
+        return redirect(url_for('edit_detailed_explanation', exercise_id=exercise_id))
+    
+    return render_template('edit_detailed_explanation.html', exercise=exercise, admin=session.get('admin', False))
+
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    if not session.get('admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Create uploads/videos directory if it doesn't exist
+        uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'videos')
+        os.makedirs(uploads_dir, exist_ok=True)
+        
+        # Save file with timestamp to avoid collisions
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+        filename = timestamp + file.filename
+        filepath = os.path.join(uploads_dir, filename)
+        
+        file.save(filepath)
+        
+        # Return the relative path for web access
+        return jsonify({'location': f'/uploads/videos/{filename}'})
+    
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
 def health():
