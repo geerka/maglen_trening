@@ -1,34 +1,50 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 import os
 import json
+import tempfile
 from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
-app.config['UPLOAD_FOLDER'] = 'uploads'
+
+# Use temp directory for uploads on Railway
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    app.config['UPLOAD_FOLDER'] = os.path.join(tempfile.gettempdir(), 'uploads')
+else:
+    app.config['UPLOAD_FOLDER'] = 'uploads'
+
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
 # ADMIN HESLO - ZMEŇ NA SVOJE
 ADMIN_PASSWORD = 'maglen2025'
 
 # Vytvor uploads folder ak neexistuje
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'videos'), exist_ok=True)
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'videos'), exist_ok=True)
+except Exception as e:
+    print(f"Warning: Could not create upload folders: {e}")
 
 # File pre ukladanie cvikov
 EXERCISES_FILE = 'exercises.json'
 
 def load_exercises():
     """Načítaj cviky z JSON súboru"""
-    if os.path.exists(EXERCISES_FILE):
-        with open(EXERCISES_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    try:
+        if os.path.exists(EXERCISES_FILE):
+            with open(EXERCISES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading exercises: {e}")
     return []
 
 def save_exercises(exercises):
     """Ulož cviky do JSON súboru"""
-    with open(EXERCISES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(exercises, f, ensure_ascii=False, indent=2)
+    try:
+        with open(EXERCISES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(exercises, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving exercises: {e}")
 
 def is_admin():
     """Kontrola či je používateľ admin"""
@@ -64,9 +80,13 @@ def serve_upload(filepath):
 @app.route('/')
 def index():
     """Hlavná stránka s listom cvikov"""
-    exercises = load_exercises()
-    admin = is_admin()
-    return render_template('index.html', exercises=exercises, admin=admin)
+    try:
+        exercises = load_exercises()
+        admin = is_admin()
+        return render_template('index.html', exercises=exercises, admin=admin)
+    except Exception as e:
+        print(f"Error in index route: {e}")
+        return {'error': 'Server error'}, 500
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_exercise():
