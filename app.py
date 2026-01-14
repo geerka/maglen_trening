@@ -1,13 +1,14 @@
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 import json
 import os
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-12345')
 
 ADMIN_PASSWORD = 'maglen2025'
 DATA_FILE = 'exercises.json'
+UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 
 # Initialize data file
 if not os.path.exists(DATA_FILE):
@@ -27,6 +28,11 @@ def save_data(data):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Save error: {e}")
+
+# Serve uploaded files
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOADS_FOLDER, filename)
 
 # Routes
 @app.route('/')
@@ -198,23 +204,37 @@ def upload_image():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'error': 'Only image files are allowed'}), 400
+        
         # Create uploads/videos directory if it doesn't exist
         uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'videos')
         os.makedirs(uploads_dir, exist_ok=True)
         
         # Save file with timestamp to avoid collisions
+        file_ext = file.filename.rsplit('.', 1)[1].lower()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = timestamp + file.filename
+        filename = timestamp + 'img.' + file_ext
         filepath = os.path.join(uploads_dir, filename)
         
+        # Save the file
         file.save(filepath)
         
+        # Verify file was saved
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'File save failed'}), 500
+        
         # Return the relative path for web access
-        return jsonify({'location': f'/uploads/videos/{filename}'})
+        return jsonify({'location': f'/uploads/videos/{filename}', 'filename': filename})
     
     except Exception as e:
-        print(f"Upload error: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_msg = str(e)
+        print(f"Upload error: {error_msg}")
+        print(traceback.format_exc())
+        return jsonify({'error': error_msg}), 500
 
 @app.route('/health')
 def health():
