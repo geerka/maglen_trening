@@ -5,7 +5,12 @@ import tempfile
 import secrets
 from datetime import datetime
 
-app = Flask(__name__)
+# Get the directory where this script is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, 
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'))
 
 # Generate secure secret key
 secret_key = os.environ.get('SECRET_KEY')
