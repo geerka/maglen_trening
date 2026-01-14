@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upraviť cvik</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f8f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: #fff;
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .form-card {
+            background: #fff;
+            border-radius: 5px;
+            padding: 2rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            color: #333;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 0.6rem;
+            cursor: pointer;
+            width: auto;
+            padding: 0;
+            border: none;
+            background: none;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #333;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus,
+        input[type="file"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #999;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .video-section {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .video-preview {
+            background: #f5f5f5;
+            border-radius: 3px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .video-preview video {
+            width: 100%;
+            border-radius: 3px;
+            max-height: 300px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 3px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-submit {
+            background: #333;
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: #555;
+        }
+
+        .btn-cancel {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>✏️ Upraviť cvik</h1>
+    </header>
+
+    <div class="container">
+        <div class="form-card">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="name">Názov cviku *</label>
+                    <input type="text" id="name" name="name" required value="{{ exercise.name }}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Svalové skupiny *</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Hrudník" {% if 'Hrudník' in exercise.get('muscle_groups', []) %}checked{% endif %}> Hrudník
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Chrbát" {% if 'Chrbát' in exercise.get('muscle_groups', []) %}checked{% endif %}> Chrbát
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Ramená" {% if 'Ramená' in exercise.get('muscle_groups', []) %}checked{% endif %}> Ramená
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Bicepsy" {% if 'Bicepsy' in exercise.get('muscle_groups', []) %}checked{% endif %}> Bicepsy
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Tricepsy" {% if 'Tricepsy' in exercise.get('muscle_groups', []) %}checked{% endif %}> Tricepsy
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Nohy" {% if 'Nohy' in exercise.get('muscle_groups', []) %}checked{% endif %}> Nohy
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Brucho" {% if 'Brucho' in exercise.get('muscle_groups', []) %}checked{% endif %}> Brucho
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="muscle_groups" value="Predlaktie" {% if 'Predlaktie' in exercise.get('muscle_groups', []) %}checked{% endif %}> Predlaktie
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="difficulty">Úroveň ťažkosti *</label>
+                        <select id="difficulty" name="difficulty" required>
+                            <option value="Začiatočník" {% if exercise.difficulty == 'Začiatočník' %}selected{% endif %}>Začiatočník</option>
+                            <option value="Pokročilý" {% if exercise.difficulty == 'Pokročilý' %}selected{% endif %}>Pokročilý</option>
+                            <option value="Expert" {% if exercise.difficulty == 'Expert' %}selected{% endif %}>Expert</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Popis cviku *</label>
+                    <textarea id="description" name="description" required>{{ exercise.description }}</textarea>
+                </div>
+
+                <div class="video-section">
+                    <label>Video cviku</label>
+                    
+                    {% if exercise.video %}
+                        <div class="video-preview">
+                            <p style="margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem;">Aktuálne video:</p>
+                            <video controls>
+                                <source src="/uploads/videos/{{ exercise.video }}" type="video/mp4">
+                            </video>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="video">Nahraj nové video (MP4)</label>
+                        <input type="file" id="video" name="video" accept="video/mp4">
+                        <small style="color: #aaa;">Ponechaj prázdne ak chceš zachovať aktuálne video</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="video_url">YouTube URL</label>
+                        <input type="url" id="video_url" name="video_url" value="{{ exercise.get('video_url', '') }}" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Uložiť zmeny</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

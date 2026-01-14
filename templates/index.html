@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vzpieračské Cviky</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f8f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: #fff;
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .btn-add {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-add:hover {
+            background: #555;
+        }
+
+        .exercises-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .exercise-card {
+            background: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+        }
+
+        .exercise-card:hover {
+            border-color: #999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .exercise-video {
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .exercise-video video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .exercise-video.no-video {
+            background: #f0f0f0;
+        }
+
+        .video-icon {
+            color: #ccc;
+            opacity: 0.5;
+        }
+
+        .exercise-content {
+            padding: 1.5rem;
+        }
+
+        .exercise-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .exercise-meta {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            background: #e8e8e8;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            color: #666;
+            border: 1px solid #d0d0d0;
+        }
+
+        .badge.difficulty {
+            background: #e8e8e8;
+            color: #666;
+            border-color: #d0d0d0;
+        }
+
+        .exercise-description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .exercise-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: space-between;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-view {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-view:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-edit {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-edit:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+        }
+
+        .btn-delete:hover {
+            background: #ffcdd2;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .exercises-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>💪 Vzpieračské Cviky</h1>
+        <p>Zbierka cvikov pre silový tréning</p>
+        {% if admin %}
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                <span style="color: #28a745; font-weight: 600; margin-right: 1rem;">✓ Admin režim</span>
+                <a href="{{ url_for('admin_logout') }}" style="color: #666; text-decoration: none; font-size: 0.9rem;">Odhlásiť sa</a>
+            </div>
+        {% endif %}
+    </header>
+
+    <div class="container">
+        {% if admin %}
+            <a href="{{ url_for('add_exercise') }}" class="btn-add">+ Pridať nový cvik</a>
+        {% endif %}
+
+        {% if exercises %}
+            <div class="exercises-grid">
+                {% for exercise in exercises %}
+                    <div class="exercise-card">
+                        <div class="exercise-video {% if not exercise.video and not exercise.video_url %}no-video{% endif %}">
+                            {% if exercise.video %}
+                                <video controls>
+                                    <source src="/uploads/videos/{{ exercise.video }}" type="video/mp4">
+                                    Tvoj prehliadač nepodporuje HTML5 video.
+                                </video>
+                            {% elif exercise.video_url %}
+                                <iframe style="width: 100%; height: 100%; border: none;" 
+                                        src="https://www.youtube.com/embed/{{ exercise.video_url.split('=')[-1] if '=' in exercise.video_url else exercise.video_url }}"
+                                        allowfullscreen></iframe>
+                            {% else %}
+                                <span class="video-icon">▶️</span>
+                            {% endif %}
+                        </div>
+                        <div class="exercise-content">
+                            <div class="exercise-name">{{ exercise.name }}</div>
+                            <div class="exercise-meta">
+                                {% for muscle_group in exercise.get('muscle_groups', [exercise.get('muscle_group', '')]) %}
+                                    <span class="badge">{{ muscle_group }}</span>
+                                {% endfor %}
+                                <span class="badge difficulty">{{ exercise.difficulty }}</span>
+                            </div>
+                            <div class="exercise-description">{{ exercise.description }}</div>
+                            <div class="exercise-actions">
+                                <a href="{{ url_for('view_exercise', exercise_id=exercise.id) }}" class="btn-small btn-view">Zobraziť</a>
+                                {% if admin %}
+                                    <a href="{{ url_for('edit_exercise', exercise_id=exercise.id) }}" class="btn-small btn-edit">Upraviť</a>
+                                    <form method="POST" action="{{ url_for('delete_exercise', exercise_id=exercise.id) }}" style="flex: 1;">
+                                        <button type="submit" class="btn-small btn-delete" onclick="return confirm('Naozaj chceš vymazať tento cvik?')">Vymazať</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>Žiadne cviky! 😕</p>
+                {% if admin %}
+                    <a href="{{ url_for('add_exercise') }}" class="btn-add">Pridaj prvý cvik</a>
+                {% else %}
+                    <p style="color: #ccc; margin-top: 1rem;">Čakaj, kým budú pridané cviky.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ exercise.name }} - Detailné vysvetlenie</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f8f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: #fff;
+            padding: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #888;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .content {
+            background: #fff;
+            border-radius: 5px;
+            padding: 2rem;
+            border: 1px solid #e0e0e0;
+            line-height: 1.8;
+        }
+
+        .content-item {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .content-item:last-child {
+            border-bottom: none;
+        }
+
+        .text-content {
+            font-size: 1rem;
+            color: #555;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .image-content {
+            margin: 1rem 0;
+        }
+
+        .image-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .image-caption {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .video-content {
+            margin: 1rem 0;
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .video-content iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .html-content {
+            font-size: 1rem;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .html-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            margin: 1rem 0;
+        }
+
+        .html-content h1, .html-content h2, .html-content h3 {
+            color: #333;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .html-content p {
+            margin-bottom: 1rem;
+        }
+
+        .html-content ul, .html-content ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .html-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            margin-bottom: 2rem;
+        }
+
+        .back-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        .back-link a:hover {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📖 {{ exercise.name }} - Detailné vysvetlenie</h1>
+        <p>Kompletný návod a pokyny</p>
+    </header>
+
+    <div class="container">
+        <div class="back-link">
+            <a href="javascript:history.back()">← Späť</a>
+        </div>
+
+        <div class="content">
+            {% if exercise.get('detailed_explanation') %}
+                {% for item in exercise.detailed_explanation %}
+                    <div class="content-item">
+                        {% if item.type == 'text' %}
+                            <div class="html-content">{{ item.content|safe }}</div>
+                        {% elif item.type == 'image' %}
+                            <div class="image-content">
+                                <img src="/uploads/videos/{{ item.content }}" alt="Obrázok cviku">
+                                {% if item.get('caption') %}
+                                    <div class="image-caption">{{ item.caption }}</div>
+                                {% endif %}
+                            </div>
+                        {% elif item.type == 'video' %}
+                            <div class="video-content">
+                                <iframe src="https://www.youtube.com/embed/{{ item.content.split('=')[-1] if '=' in item.content else item.content }}"
+                                        allowfullscreen></iframe>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>Žiadne detailné vysvetlenie.</p>
+                    <p style="font-size: 0.9rem; color: #ccc;">Admin môže pridať vysvetlenie v sekcii "Upraviť vysvetlenie".</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

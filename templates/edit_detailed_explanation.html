@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upraviť vysvetlenie - {{ exercise.name }}</title>
+    <!-- Quill Editor -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.snow.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f8f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: #fff;
+            padding: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .form-card {
+            background: #fff;
+            border-radius: 5px;
+            padding: 2rem;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 2rem;
+        }
+
+        .form-card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        input[type="file"] {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #333;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #999;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 3px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-add {
+            background: #333;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-add:hover {
+            background: #555;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .preview-panel {
+            background: #fff;
+            border-radius: 5px;
+            padding: 2rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .preview-panel h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .preview-item {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+
+        .preview-content {
+            flex: 1;
+        }
+
+        .preview-type {
+            font-size: 0.85rem;
+            color: #999;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-text {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .preview-image {
+            max-width: 200px;
+            height: auto;
+            border-radius: 3px;
+            border: 1px solid #e0e0e0;
+            margin: 0.5rem 0;
+        }
+
+        .preview-caption {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+            margin-top: 0.3rem;
+        }
+
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .btn-delete:hover {
+            background: #ffcdd2;
+        }
+
+        .empty-preview {
+            text-align: center;
+            color: #999;
+            padding: 3rem 2rem;
+        }
+
+        .tox-tinymce {
+            border: 1px solid #ddd !important;
+        }
+
+        #editor {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            min-height: 400px;
+        }
+
+        .ql-toolbar {
+            border-radius: 3px 3px 0 0;
+            border-color: #ddd !important;
+            background: #fafafa;
+        }
+
+        .ql-container {
+            border-radius: 0 0 3px 3px;
+            border-color: #ddd !important;
+        }
+
+        @media (max-width: 1024px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>✏️ Upraviť vysvetlenie - {{ exercise.name }}</h1>
+    </header>
+
+    <div class="container">
+        <!-- Editor -->
+        <div class="form-card">
+            <h2>📝 Textový editor (s obrázkami a videami)</h2>
+            <form id="editor-form" method="POST">
+                <div class="form-group">
+                    <div id="editor"></div>
+                </div>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                    <button type="submit" name="action" value="add_text" class="btn btn-add" style="flex: 1;">+ Pridať obsah</button>
+                    <button type="button" id="btn-clear" class="btn" style="background: #ddd; color: #333; flex: 1;">Vyčistiť editor</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pridať video -->
+        <div class="form-card">
+            <h2>🎥 Pridať video (YouTube)</h2>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="video_url">YouTube URL</label>
+                    <input type="url" id="video_url" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                <button type="submit" name="action" value="add_video" class="btn btn-add">+ Pridať video</button>
+            </form>
+        </div>
+
+        <!-- Náhľad -->
+        <div class="preview-panel">
+            <h2>👁️ Náhľad obsahu ({{ exercise.get('detailed_explanation', [])|length }})</h2>
+            
+            {% if exercise.get('detailed_explanation') %}
+                {% for item in exercise.detailed_explanation %}
+                    <div class="preview-item">
+                        <div class="preview-content">
+                            <div class="preview-type">
+                                {% if item.type == 'text' %}
+                                    📝 Obsah
+                                {% elif item.type == 'video' %}
+                                    🎥 Video
+                                {% endif %}
+                            </div>
+                            {% if item.type == 'text' %}
+                                <div class="preview-html">{{ item.content|safe }}</div>
+                            {% elif item.type == 'video' %}
+                                <div class="preview-text">YouTube video</div>
+                            {% endif %}
+                        </div>
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="item_index" value="{{ loop.index0 }}">
+                            <button type="submit" name="action" value="delete_item" class="btn btn-delete" onclick="return confirm('Vymazať?')">Vymazať</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-preview">
+                    <p>Žiadny obsah - začnite písaním v textovom editore vyššie</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.js"></script>
+    <script>
+        // Inicializuj Quill editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'align': [] }],
+                    ['link', 'image'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Začnite písať detailný postup cviku...'
+        });
+
+        // Vyčistenie editora
+        document.getElementById('btn-clear').addEventListener('click', function() {
+            quill.setContents([]);
+        });
+
+        // Upload obrázka - zlepšený handler
+        quill.getModule('toolbar').addHandler('image', selectLocalImage);
+        
+        function selectLocalImage() {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+            
+            input.onchange = async function() {
+                const file = input.files[0];
+                if (!file) {
+                    console.log('Žiadny file vybraný');
+                    return;
+                }
+                
+                console.log('Vybraný súbor:', file.name, 'Veľkosť:', file.size);
+                
+                // Disable button počas uploadu
+                const toolbar = document.querySelector('.ql-toolbar');
+                toolbar.style.opacity = '0.5';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('{{ url_for("upload_image") }}', {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Upload error:', errorData);
+                        
+                        if (response.status === 401) {
+                            alert('❌ Nie si prihlásený ako admin!');
+                        } else {
+                            alert('❌ Chyba pri uploade: ' + (errorData.error || response.statusText));
+                        }
+                        toolbar.style.opacity = '1';
+                        return;
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Upload response:', data);
+                    
+                    if (data.location) {
+                        // Vlož obrázok na pozíciu cursora
+                        const range = quill.getSelection();
+                        if (range) {
+                            quill.insertEmbed(range.index, 'image', data.location);
+                            // Posuň cursor za obrázok
+                            quill.setSelection(range.index + 1);
+                        }
+                        console.log('Obrázok vložený úspešne');
+                    } else {
+                        alert('❌ Chyba: Žiadna URL v odpovedi');
+                    }
+                    
+                    toolbar.style.opacity = '1';
+                } catch (error) {
+                    console.error('Upload exception:', error);
+                    alert('❌ Chyba pri uploade: ' + error.message);
+                    document.querySelector('.ql-toolbar').style.opacity = '1';
+                }
+            };
+        }
+
+        // Pri submite formulára, ulož HTML z editora do hidden input
+        document.getElementById('editor-form').onsubmit = function(e) {
+            const content = quill.root.innerHTML;
+            
+            // Ak editor je prázdny, zastavy submit
+            if (content === '<p><br></p>' || content === '') {
+                alert('⚠️ Prosím, napíš niečo pred submitom');
+                e.preventDefault();
+                return false;
+            }
+            
+            // Vytvor hidden input pre HTML obsah
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'text_content';
+            hiddenInput.value = content;
+            
+            this.appendChild(hiddenInput);
+            return true;
+        };
+    </script>
+</body>
+</html>
