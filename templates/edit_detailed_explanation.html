@@ -322,7 +322,6 @@
             const input = document.createElement('input');
             input.setAttribute('type', 'file');
             input.setAttribute('accept', 'image/*');
-            input.click();
             
             input.onchange = async function() {
                 const file = input.files[0];
@@ -335,33 +334,37 @@
                 
                 // Disable button počas uploadu
                 const toolbar = document.querySelector('.ql-toolbar');
-                toolbar.style.opacity = '0.5';
+                if (toolbar) toolbar.style.opacity = '0.5';
                 
                 try {
                     const formData = new FormData();
                     formData.append('file', file);
                     
+                    console.log('Začína upload na:', '{{ url_for("upload_image") }}');
+                    
                     const response = await fetch('{{ url_for("upload_image") }}', {
                         method: 'POST',
                         body: formData,
-                        credentials: 'same-origin',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
+                        credentials: 'same-origin'
                     });
                     
                     console.log('Response status:', response.status);
                     
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error('Upload error:', errorData);
+                        let errorMsg = response.statusText;
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) {}
+                        
+                        console.error('Upload error:', errorMsg);
                         
                         if (response.status === 401) {
                             alert('❌ Nie si prihlásený ako admin!');
                         } else {
-                            alert('❌ Chyba pri uploade: ' + (errorData.error || response.statusText));
+                            alert('❌ Chyba pri uploade: ' + errorMsg);
                         }
-                        toolbar.style.opacity = '1';
+                        if (toolbar) toolbar.style.opacity = '1';
                         return;
                     }
                     
@@ -376,18 +379,22 @@
                             // Posuň cursor za obrázok
                             quill.setSelection(range.index + 1);
                         }
-                        console.log('Obrázok vložený úspešne');
+                        console.log('Obrázok vložený úspešne:', data.location);
                     } else {
                         alert('❌ Chyba: Žiadna URL v odpovedi');
                     }
                     
-                    toolbar.style.opacity = '1';
+                    if (toolbar) toolbar.style.opacity = '1';
                 } catch (error) {
                     console.error('Upload exception:', error);
                     alert('❌ Chyba pri uploade: ' + error.message);
-                    document.querySelector('.ql-toolbar').style.opacity = '1';
+                    const toolbar = document.querySelector('.ql-toolbar');
+                    if (toolbar) toolbar.style.opacity = '1';
                 }
             };
+            
+            input.click();
+        }
         }
 
         // Pri submite formulára, ulož HTML z editora do hidden input

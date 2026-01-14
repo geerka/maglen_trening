@@ -203,7 +203,6 @@ def upload_image():
         os.makedirs(uploads_dir, exist_ok=True)
         
         # Save file with timestamp to avoid collisions
-        from datetime import datetime
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
         filename = timestamp + file.filename
         filepath = os.path.join(uploads_dir, filename)
