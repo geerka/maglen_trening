@@ -290,133 +290,135 @@
 
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.js"></script>
     <script>
-        // Inicializuj Quill editor
-        const quill = new Quill('#editor', {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    ['blockquote', 'code-block'],
-                    [{ 'header': 1 }, { 'header': 2 }],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'script': 'sub'}, { 'script': 'super' }],
-                    [{ 'indent': '-1'}, { 'indent': '+1' }],
-                    [{ 'size': ['small', false, 'large', 'huge'] }],
-                    [{ 'align': [] }],
-                    ['link', 'image'],
-                    ['clean']
-                ]
-            },
-            placeholder: 'Začnite písať detailný postup cviku...'
-        });
+        // Inicializuj Quill editor na DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializuj Quill editor
+            const quill = new Quill('#editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'header': 1 }, { 'header': 2 }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'align': [] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Začnite písať detailný postup cviku...'
+            });
 
-        // Vyčistenie editora
-        document.getElementById('btn-clear').addEventListener('click', function() {
-            quill.setContents([]);
-        });
+            // Vyčistenie editora
+            document.getElementById('btn-clear').addEventListener('click', function() {
+                quill.setContents([]);
+            });
 
-        // Upload obrázka - zlepšený handler
-        quill.getModule('toolbar').addHandler('image', selectLocalImage);
-        
-        function selectLocalImage() {
-            const input = document.createElement('input');
-            input.setAttribute('type', 'file');
-            input.setAttribute('accept', 'image/*');
+            // Upload obrázka - zlepšený handler
+            quill.getModule('toolbar').addHandler('image', selectLocalImage);
             
-            input.onchange = async function() {
-                const file = input.files[0];
-                if (!file) {
-                    console.log('Žiadny file vybraný');
-                    return;
-                }
+            function selectLocalImage() {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
                 
-                console.log('Vybraný súbor:', file.name, 'Veľkosť:', file.size);
-                
-                // Disable button počas uploadu
-                const toolbar = document.querySelector('.ql-toolbar');
-                if (toolbar) toolbar.style.opacity = '0.5';
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    console.log('Začína upload na:', '{{ url_for("upload_image") }}');
-                    
-                    const response = await fetch('{{ url_for("upload_image") }}', {
-                        method: 'POST',
-                        body: formData,
-                        credentials: 'same-origin'
-                    });
-                    
-                    console.log('Response status:', response.status);
-                    
-                    if (!response.ok) {
-                        let errorMsg = response.statusText;
-                        try {
-                            const errorData = await response.json();
-                            errorMsg = errorData.error || errorMsg;
-                        } catch (e) {}
-                        
-                        console.error('Upload error:', errorMsg);
-                        
-                        if (response.status === 401) {
-                            alert('❌ Nie si prihlásený ako admin!');
-                        } else {
-                            alert('❌ Chyba pri uploade: ' + errorMsg);
-                        }
-                        if (toolbar) toolbar.style.opacity = '1';
+                input.onchange = async function() {
+                    const file = input.files[0];
+                    if (!file) {
+                        console.log('Žiadny file vybraný');
                         return;
                     }
                     
-                    const data = await response.json();
-                    console.log('Upload response:', data);
+                    console.log('Vybraný súbor:', file.name, 'Veľkosť:', file.size);
                     
-                    if (data.location) {
-                        // Vlož obrázok na pozíciu cursora
-                        const range = quill.getSelection();
-                        if (range) {
-                            quill.insertEmbed(range.index, 'image', data.location);
-                            // Posuň cursor za obrázok
-                            quill.setSelection(range.index + 1);
-                        }
-                        console.log('Obrázok vložený úspešne:', data.location);
-                    } else {
-                        alert('❌ Chyba: Žiadna URL v odpovedi');
-                    }
-                    
-                    if (toolbar) toolbar.style.opacity = '1';
-                } catch (error) {
-                    console.error('Upload exception:', error);
-                    alert('❌ Chyba pri uploade: ' + error.message);
+                    // Disable button počas uploadu
                     const toolbar = document.querySelector('.ql-toolbar');
-                    if (toolbar) toolbar.style.opacity = '1';
-                }
-            };
-            
-            input.click();
-        }
-        }
-
-        // Pri submite formulára, ulož HTML z editora do hidden input
-        document.getElementById('editor-form').onsubmit = function(e) {
-            const content = quill.root.innerHTML;
-            
-            // Ak editor je prázdny, zastavy submit
-            if (content === '<p><br></p>' || content === '') {
-                alert('⚠️ Prosím, napíš niečo pred submitom');
-                e.preventDefault();
-                return false;
+                    if (toolbar) toolbar.style.opacity = '0.5';
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        console.log('Začína upload na:', '{{ url_for("upload_image") }}');
+                        
+                        const response = await fetch('{{ url_for("upload_image") }}', {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        });
+                        
+                        console.log('Response status:', response.status);
+                        
+                        if (!response.ok) {
+                            let errorMsg = response.statusText;
+                            try {
+                                const errorData = await response.json();
+                                errorMsg = errorData.error || errorMsg;
+                            } catch (e) {}
+                            
+                            console.error('Upload error:', errorMsg);
+                            
+                            if (response.status === 401) {
+                                alert('❌ Nie si prihlásený ako admin!');
+                            } else {
+                                alert('❌ Chyba pri uploade: ' + errorMsg);
+                            }
+                            if (toolbar) toolbar.style.opacity = '1';
+                            return;
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Upload response:', data);
+                        
+                        if (data.location) {
+                            // Vlož obrázok na pozíciu cursora
+                            const range = quill.getSelection();
+                            if (range) {
+                                quill.insertEmbed(range.index, 'image', data.location);
+                                // Posuň cursor za obrázok
+                                quill.setSelection(range.index + 1);
+                            }
+                            console.log('Obrázok vložený úspešne:', data.location);
+                        } else {
+                            alert('❌ Chyba: Žiadna URL v odpovedi');
+                        }
+                        
+                        if (toolbar) toolbar.style.opacity = '1';
+                    } catch (error) {
+                        console.error('Upload exception:', error);
+                        alert('❌ Chyba pri uploade: ' + error.message);
+                        const toolbar = document.querySelector('.ql-toolbar');
+                        if (toolbar) toolbar.style.opacity = '1';
+                    }
+                };
+                
+                input.click();
             }
-            
-            // Vytvor hidden input pre HTML obsah
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'text_content';
-            hiddenInput.value = content;
-            
-            this.appendChild(hiddenInput);
-            return true;
+
+            // Pri submite formulára, ulož HTML z editora do hidden input
+            document.getElementById('editor-form').onsubmit = function(e) {
+                const content = quill.root.innerHTML;
+                
+                // Ak editor je prázdny, zastavy submit
+                if (content === '<p><br></p>' || content === '') {
+                    alert('⚠️ Prosím, napíš niečo pred submitom');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Vytvor hidden input pre HTML obsah
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'text_content';
+                hiddenInput.value = content;
+                
+                this.appendChild(hiddenInput);
+                return true;
         };
+        }); // Koniec DOMContentLoaded
     </script>
 </body>
 </html>
