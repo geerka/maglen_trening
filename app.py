@@ -2,10 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 import os
 import json
 import tempfile
+import secrets
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# Generate secure secret key
+secret_key = os.environ.get('SECRET_KEY')
+if not secret_key:
+    secret_key = secrets.token_hex(32)
+    print(f"[WARNING] No SECRET_KEY environment variable set. Generated temporary key.")
+
+app.secret_key = secret_key
 
 # Use temp directory for uploads on Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
