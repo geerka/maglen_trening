@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Maglen Fitness Centre - Flask Web App
+Maglen Fitness Centre - Minimal Flask App (JSON API only)
 """
 
 import os
@@ -14,113 +14,91 @@ from pathlib import Path
 # Configure logging FIRST
 import logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='[%(levelname)s] %(asctime)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-logger.info("=" * 60)
-logger.info("Starting Flask Application")
-logger.info("=" * 60)
+print("\n" + "="*70)
+print("STARTING MAGLEN FITNESS APP")
+print("="*70 + "\n")
 
+# Import Flask
 try:
-    from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
-    logger.info("✓ Flask imported successfully")
+    from flask import Flask, jsonify, request, session
+    print("✓ Flask imported")
 except Exception as e:
-    logger.error(f"✗ Failed to import Flask: {e}")
+    print(f"✗ Flask import failed: {e}")
     sys.exit(1)
 
-# Determine base directory
+# Setup directories
 BASE_DIR = Path(__file__).resolve().parent
-logger.info(f"Base directory: {BASE_DIR}")
+print(f"✓ Base dir: {BASE_DIR}")
 
-# Create Flask app with explicit paths
+# Create app - MINIMAL
 try:
-    app = Flask(
-        __name__,
-        template_folder=str(BASE_DIR / 'templates'),
-        static_folder=str(BASE_DIR / 'static')
-    )
-    logger.info("✓ Flask app created")
-except Exception as e:
-    logger.error(f"✗ Failed to create Flask app: {e}")
-    sys.exit(1)
-
-# Configure app
-try:
+    app = Flask(__name__)
     app.config['JSON_SORT_KEYS'] = False
     app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
     
-    # Secret key
-    secret_key = os.environ.get('SECRET_KEY')
-    if not secret_key:
-        secret_key = secrets.token_hex(32)
-        logger.warning("No SECRET_KEY in environment. Generated temporary key.")
+    secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
     app.secret_key = secret_key
     
-    logger.info("✓ App configured")
+    print("✓ Flask app created and configured")
 except Exception as e:
-    logger.error(f"✗ Failed to configure app: {e}")
+    print(f"✗ Failed to create app: {e}")
     sys.exit(1)
 
-# Setup paths
+# Setup upload folder
 try:
     if os.environ.get('RAILWAY_ENVIRONMENT'):
         UPLOAD_FOLDER = Path(tempfile.gettempdir()) / 'uploads'
-        logger.info("Using temporary directory for uploads (Railway)")
+        print(f"✓ Using temp dir: {UPLOAD_FOLDER}")
     else:
         UPLOAD_FOLDER = BASE_DIR / 'uploads'
-        logger.info("Using local uploads directory")
+        print(f"✓ Using local dir: {UPLOAD_FOLDER}")
     
     UPLOAD_FOLDER.mkdir(exist_ok=True)
     (UPLOAD_FOLDER / 'videos').mkdir(exist_ok=True)
-    
     app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
-    logger.info(f"✓ Upload folder ready: {UPLOAD_FOLDER}")
 except Exception as e:
-    logger.error(f"✗ Failed to setup upload folder: {e}")
-    app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
+    print(f"✗ Upload folder setup failed: {e}")
+    sys.exit(1)
 
 # Data file
 EXERCISES_FILE = BASE_DIR / 'exercises.json'
 ADMIN_PASSWORD = 'maglen2025'
 
-# Initialize data file
 try:
     if not EXERCISES_FILE.exists():
         with open(EXERCISES_FILE, 'w', encoding='utf-8') as f:
             json.dump([], f)
-        logger.info("✓ Created empty exercises.json")
-    else:
-        logger.info("✓ exercises.json found")
+    print(f"✓ Data file: {EXERCISES_FILE}")
 except Exception as e:
-    logger.error(f"✗ Failed to initialize exercises.json: {e}")
+    print(f"✗ Data file init failed: {e}")
+    sys.exit(1)
 
 # ============================================================================
-# Helper Functions
+# Data functions
 # ============================================================================
 
 def load_exercises():
-    """Load exercises from JSON file"""
     try:
         if EXERCISES_FILE.exists():
             with open(EXERCISES_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        logger.error(f"Error loading exercises: {e}")
+        logger.error(f"Load error: {e}")
     return []
 
 def save_exercises(exercises):
-    """Save exercises to JSON file"""
     try:
         with open(EXERCISES_FILE, 'w', encoding='utf-8') as f:
             json.dump(exercises, f, ensure_ascii=False, indent=2)
-        logger.info(f"Saved {len(exercises)} exercises")
     except Exception as e:
-        logger.error(f"Error saving exercises: {e}")
+        logger.error(f"Save error: {e}")
 
 def is_admin():
-    """Check if user is admin"""
     return session.get('admin', False)
 
 # ============================================================================
@@ -129,284 +107,159 @@ def is_admin():
 
 @app.route('/')
 def index():
-    """Main page - list of exercises"""
+    """Test endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Maglen Fitness API',
+        'version': '1.0',
+        'endpoints': [
+            'GET /health',
+            'GET /api/exercises',
+            'POST /api/admin-login',
+            'POST /api/exercise/add',
+            'GET /api/exercise/<id>',
+            'POST /api/exercise/<id>/edit',
+            'POST /api/exercise/<id>/delete'
+        ]
+    })
+
+@app.route('/health')
+def health():
+    """Health check"""
+    return jsonify({'status': 'healthy'})
+
+@app.route('/api/exercises')
+def get_exercises():
+    """Get all exercises"""
     try:
         exercises = load_exercises()
-        admin = is_admin()
-        return render_template('index.html', exercises=exercises, admin=admin)
+        return jsonify({'exercises': exercises, 'count': len(exercises)})
     except Exception as e:
-        logger.error(f"Error in index route: {e}", exc_info=True)
-        return {'error': f'Server error: {str(e)}'}, 500
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/admin-login', methods=['GET', 'POST'])
+@app.route('/api/exercise/<int:exercise_id>')
+def get_exercise(exercise_id):
+    """Get single exercise"""
+    try:
+        exercises = load_exercises()
+        exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
+        
+        if not exercise:
+            return jsonify({'error': 'Not found'}), 404
+        
+        return jsonify(exercise)
+    except Exception as e:
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin-login', methods=['POST'])
 def admin_login():
     """Admin login"""
     try:
-        if request.method == 'POST':
-            password = request.form.get('password')
-            if password == ADMIN_PASSWORD:
-                session['admin'] = True
-                return redirect(url_for('index'))
-            else:
-                return render_template('admin_login.html', error='Nesprávne heslo!')
+        data = request.get_json()
+        password = data.get('password')
         
-        return render_template('admin_login.html')
+        if password == ADMIN_PASSWORD:
+            session['admin'] = True
+            return jsonify({'success': True, 'message': 'Logged in'})
+        else:
+            return jsonify({'success': False, 'message': 'Wrong password'}), 401
     except Exception as e:
-        logger.error(f"Error in admin_login: {e}", exc_info=True)
-        return {'error': str(e)}, 500
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/admin-logout')
+@app.route('/api/admin-logout', methods=['POST'])
 def admin_logout():
     """Admin logout"""
     session['admin'] = False
-    return redirect(url_for('index'))
+    return jsonify({'success': True, 'message': 'Logged out'})
 
-@app.route('/uploads/<path:filepath>')
-def serve_upload(filepath):
-    """Serve uploaded files"""
-    try:
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filepath)
-    except Exception as e:
-        logger.error(f"Error serving upload: {e}")
-        return {'error': 'File not found'}, 404
-
-@app.route('/add', methods=['GET', 'POST'])
+@app.route('/api/exercise/add', methods=['POST'])
 def add_exercise():
-    """Add new exercise"""
+    """Add exercise"""
     if not is_admin():
-        return redirect(url_for('admin_login'))
+        return jsonify({'error': 'Unauthorized'}), 401
     
     try:
-        if request.method == 'POST':
-            exercises = load_exercises()
-            
-            video_filename = None
-            if 'video' in request.files:
-                video = request.files['video']
-                if video and video.filename != '':
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-                    video_filename = timestamp + video.filename
-                    video_path = os.path.join(app.config['UPLOAD_FOLDER'], 'videos', video_filename)
-                    video.save(video_path)
-            
-            new_exercise = {
-                'id': len(exercises) + 1,
-                'name': request.form.get('name'),
-                'description': request.form.get('description'),
-                'muscle_groups': request.form.getlist('muscle_groups'),
-                'difficulty': request.form.get('difficulty'),
-                'video': video_filename,
-                'video_url': request.form.get('video_url', ''),
-                'created_at': datetime.now().isoformat()
-            }
-            
-            exercises.append(new_exercise)
-            save_exercises(exercises)
-            
-            return redirect(url_for('index'))
-        
-        return render_template('add_exercise.html')
-    except Exception as e:
-        logger.error(f"Error in add_exercise: {e}", exc_info=True)
-        return {'error': str(e)}, 500
-
-@app.route('/view/<int:exercise_id>')
-def view_exercise(exercise_id):
-    """View exercise details"""
-    try:
+        data = request.get_json()
         exercises = load_exercises()
-        exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
         
-        if not exercise:
-            return redirect(url_for('index'))
+        new_exercise = {
+            'id': len(exercises) + 1,
+            'name': data.get('name'),
+            'description': data.get('description'),
+            'muscle_groups': data.get('muscle_groups', []),
+            'difficulty': data.get('difficulty'),
+            'video': data.get('video'),
+            'video_url': data.get('video_url', ''),
+            'created_at': datetime.now().isoformat()
+        }
         
-        admin = is_admin()
-        return render_template('view_exercise.html', exercise=exercise, admin=admin)
+        exercises.append(new_exercise)
+        save_exercises(exercises)
+        
+        return jsonify({'success': True, 'exercise': new_exercise}), 201
     except Exception as e:
-        logger.error(f"Error in view_exercise: {e}", exc_info=True)
-        return redirect(url_for('index'))
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/edit/<int:exercise_id>', methods=['GET', 'POST'])
+@app.route('/api/exercise/<int:exercise_id>/edit', methods=['POST'])
 def edit_exercise(exercise_id):
     """Edit exercise"""
     if not is_admin():
-        return redirect(url_for('admin_login'))
+        return jsonify({'error': 'Unauthorized'}), 401
     
     try:
+        data = request.get_json()
         exercises = load_exercises()
         exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
         
         if not exercise:
-            return redirect(url_for('index'))
+            return jsonify({'error': 'Not found'}), 404
         
-        if request.method == 'POST':
-            exercise['name'] = request.form.get('name')
-            exercise['description'] = request.form.get('description')
-            exercise['muscle_groups'] = request.form.getlist('muscle_groups')
-            exercise['difficulty'] = request.form.get('difficulty')
-            
-            if 'video' in request.files:
-                video = request.files['video']
-                if video and video.filename != '':
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-                    video_filename = timestamp + video.filename
-                    video_path = os.path.join(app.config['UPLOAD_FOLDER'], 'videos', video_filename)
-                    video.save(video_path)
-                    exercise['video'] = video_filename
-            
-            if request.form.get('video_url'):
-                exercise['video_url'] = request.form.get('video_url')
-            
-            save_exercises(exercises)
-            return redirect(url_for('index'))
+        exercise['name'] = data.get('name', exercise['name'])
+        exercise['description'] = data.get('description', exercise['description'])
+        exercise['muscle_groups'] = data.get('muscle_groups', exercise['muscle_groups'])
+        exercise['difficulty'] = data.get('difficulty', exercise['difficulty'])
         
-        return render_template('edit_exercise.html', exercise=exercise)
+        save_exercises(exercises)
+        return jsonify({'success': True, 'exercise': exercise})
     except Exception as e:
-        logger.error(f"Error in edit_exercise: {e}", exc_info=True)
-        return redirect(url_for('index'))
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/delete/<int:exercise_id>', methods=['POST'])
+@app.route('/api/exercise/<int:exercise_id>/delete', methods=['POST'])
 def delete_exercise(exercise_id):
     """Delete exercise"""
     if not is_admin():
-        return redirect(url_for('admin_login'))
+        return jsonify({'error': 'Unauthorized'}), 401
     
     try:
         exercises = load_exercises()
-        exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
+        exercises = [ex for ex in exercises if ex['id'] != exercise_id]
+        save_exercises(exercises)
         
-        if exercise:
-            if exercise.get('video'):
-                video_path = os.path.join(app.config['UPLOAD_FOLDER'], 'videos', exercise['video'])
-                try:
-                    if os.path.exists(video_path):
-                        os.remove(video_path)
-                except:
-                    pass
-            
-            exercises = [ex for ex in exercises if ex['id'] != exercise_id]
-            save_exercises(exercises)
-        
-        return redirect(url_for('index'))
+        return jsonify({'success': True, 'message': 'Deleted'})
     except Exception as e:
-        logger.error(f"Error in delete_exercise: {e}", exc_info=True)
-        return redirect(url_for('index'))
-
-@app.route('/detailed-explanation/<int:exercise_id>')
-def detailed_explanation(exercise_id):
-    """View detailed explanation"""
-    try:
-        exercises = load_exercises()
-        exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
-        
-        if not exercise:
-            return redirect(url_for('index'))
-        
-        return render_template('detailed_explanation.html', exercise=exercise)
-    except Exception as e:
-        logger.error(f"Error in detailed_explanation: {e}", exc_info=True)
-        return redirect(url_for('index'))
-
-@app.route('/edit-detailed-explanation/<int:exercise_id>', methods=['GET', 'POST'])
-def edit_detailed_explanation(exercise_id):
-    """Edit detailed explanation"""
-    if not is_admin():
-        return redirect(url_for('admin_login'))
-    
-    try:
-        exercises = load_exercises()
-        exercise = next((ex for ex in exercises if ex['id'] == exercise_id), None)
-        
-        if not exercise:
-            return redirect(url_for('index'))
-        
-        if request.method == 'POST':
-            action = request.form.get('action')
-            
-            if 'detailed_explanation' not in exercise:
-                exercise['detailed_explanation'] = []
-            
-            if action == 'add_text':
-                text_content = request.form.get('text_content')
-                if text_content:
-                    exercise['detailed_explanation'].append({
-                        'type': 'text',
-                        'content': text_content
-                    })
-                video_url = request.form.get('video_url')
-                if video_url:
-                    exercise['detailed_explanation'].append({
-                        'type': 'video',
-                        'content': video_url
-                    })
-            
-            elif action == 'delete_item':
-                item_index = int(request.form.get('item_index'))
-                if 0 <= item_index < len(exercise['detailed_explanation']):
-                    exercise['detailed_explanation'].pop(item_index)
-            
-            save_exercises(exercises)
-            return redirect(url_for('edit_detailed_explanation', exercise_id=exercise_id))
-        
-        admin = is_admin()
-        return render_template('edit_detailed_explanation.html', exercise=exercise, admin=admin)
-    except Exception as e:
-        logger.error(f"Error in edit_detailed_explanation: {e}", exc_info=True)
-        return redirect(url_for('index'))
-
-@app.route('/upload-image', methods=['POST'])
-def upload_image():
-    """Upload image from editor"""
-    if not is_admin():
-        return {'error': 'Unauthorized'}, 401
-    
-    try:
-        if 'file' not in request.files:
-            return {'error': 'No file'}, 400
-        
-        file = request.files['file']
-        if file.filename == '':
-            return {'error': 'No filename'}, 400
-        
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = timestamp + file.filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'videos', filename)
-        file.save(filepath)
-        
-        return {'location': f'/uploads/videos/{filename}'}
-    except Exception as e:
-        logger.error(f"Error in upload_image: {e}", exc_info=True)
-        return {'error': str(e)}, 500
+        logger.error(f"Error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 # ============================================================================
-# Error Handlers
+# Error handlers
 # ============================================================================
 
 @app.errorhandler(404)
 def not_found(e):
-    logger.warning(f"404 Not Found: {request.path}")
-    return {'error': 'Not found'}, 404
+    return jsonify({'error': 'Not found'}), 404
 
 @app.errorhandler(500)
 def server_error(e):
-    logger.error(f"500 Server Error: {str(e)}", exc_info=True)
-    return {'error': 'Internal server error'}, 500
-
-@app.before_request
-def before_request():
-    logger.debug(f"{request.method} {request.path}")
+    logger.error(f"500 Error: {e}", exc_info=True)
+    return jsonify({'error': 'Server error'}), 500
 
 # ============================================================================
-# Health check
-# ============================================================================
-
-@app.route('/health')
-def health():
-    """Health check endpoint"""
-    return {'status': 'ok', 'message': 'App is running'}
-
-# ============================================================================
-# Entry point
+# Start app
 # ============================================================================
 
 if __name__ == '__main__':
@@ -414,10 +267,9 @@ if __name__ == '__main__':
         port = int(os.environ.get('PORT', 5000))
         debug = os.environ.get('FLASK_ENV', 'production') == 'development'
         
-        logger.info("=" * 60)
-        logger.info(f"Starting Flask server on port {port}")
-        logger.info(f"Debug mode: {debug}")
-        logger.info("=" * 60)
+        print("\n" + "="*70)
+        print(f"STARTING SERVER on port {port} (debug={debug})")
+        print("="*70 + "\n")
         
         app.run(
             host='0.0.0.0',
@@ -426,5 +278,7 @@ if __name__ == '__main__':
             threaded=True
         )
     except Exception as e:
-        logger.error(f"Failed to start app: {e}", exc_info=True)
+        print(f"✗ Failed to start: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
