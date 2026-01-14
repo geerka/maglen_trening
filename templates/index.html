@@ -204,6 +204,50 @@
             background: #ffcdd2;
         }
 
+        .btn-toggle-visibility {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+            padding: 0.6rem 1rem;
+            border-radius: 3px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-toggle-visibility:hover {
+            background: #bbdefb;
+        }
+
+        .btn-toggle-visibility.hidden {
+            background: #fff3e0;
+            color: #f57c00;
+            border-color: #ffb74d;
+        }
+
+        .btn-toggle-visibility.hidden:hover {
+            background: #ffe0b2;
+        }
+
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .exercise-visibility {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: #f0f0f0;
+            border-radius: 3px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
@@ -266,7 +310,12 @@
                             {% endif %}
                         </div>
                         <div class="exercise-content">
-                            <div class="exercise-name">{{ exercise.name }}</div>
+                            <div class="exercise-header">
+                                <div class="exercise-name">{{ exercise.name }}</div>
+                                {% if admin and not exercise.get('visible', True) %}
+                                    <span class="exercise-visibility">🔒 Skrytý</span>
+                                {% endif %}
+                            </div>
                             <div class="exercise-meta">
                                 {% for muscle_group in exercise.get('muscle_groups', [exercise.get('muscle_group', '')]) %}
                                     <span class="badge">{{ muscle_group }}</span>
@@ -277,6 +326,9 @@
                             <div class="exercise-actions">
                                 <a href="{{ url_for('view_exercise', exercise_id=exercise.id) }}" class="btn-small btn-view">Zobraziť</a>
                                 {% if admin %}
+                                    <button type="button" class="btn-toggle-visibility {% if not exercise.get('visible', True) %}hidden{% endif %}" onclick="toggleVisibility({{ exercise.id }}, this)">
+                                        {% if exercise.get('visible', True) %}👁️ Skryť{% else %}🚫 Zobraziť{% endif %}
+                                    </button>
                                     <a href="{{ url_for('edit_exercise', exercise_id=exercise.id) }}" class="btn-small btn-edit">Upraviť</a>
                                     <form method="POST" action="{{ url_for('delete_exercise', exercise_id=exercise.id) }}" style="flex: 1;">
                                         <button type="submit" class="btn-small btn-delete" onclick="return confirm('Naozaj chceš vymazať tento cvik?')">Vymazať</button>
@@ -298,5 +350,48 @@
             </div>
         {% endif %}
     </div>
+
+    <script>
+        async function toggleVisibility(exerciseId, button) {
+            try {
+                const response = await fetch(`/toggle-visibility/${exerciseId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    alert('Chyba pri zmene viditeľnosti');
+                    return;
+                }
+
+                const data = await response.json();
+                
+                // Update button appearance
+                if (data.visible) {
+                    button.textContent = '👁️ Skryť';
+                    button.classList.remove('hidden');
+                    // Remove visibility badge
+                    const badge = button.closest('.exercise-card').querySelector('.exercise-visibility');
+                    if (badge) badge.remove();
+                } else {
+                    button.textContent = '🚫 Zobraziť';
+                    button.classList.add('hidden');
+                    // Add visibility badge
+                    const header = button.closest('.exercise-card').querySelector('.exercise-header');
+                    if (header && !header.querySelector('.exercise-visibility')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'exercise-visibility';
+                        badge.textContent = '🔒 Skrytý';
+                        header.appendChild(badge);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Chyba pri zmene viditeľnosti');
+            }
+        }
+    </script>
 </body>
 </html>

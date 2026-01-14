@@ -33,6 +33,9 @@ def save_data(data):
 def index():
     exercises = load_data()
     is_admin = session.get('admin', False)
+    # Filter exercises: show only visible ones for non-admin, all for admin
+    if not is_admin:
+        exercises = [e for e in exercises if e.get('visible', True)]
     return render_template('index.html', exercises=exercises, admin=is_admin)
 
 @app.route('/admin-login', methods=['GET', 'POST'])
@@ -74,6 +77,7 @@ def add_exercise():
             'muscle_groups': request.form.getlist('muscle_groups'),
             'difficulty': request.form.get('difficulty'),
             'video_url': request.form.get('video_url', ''),
+            'visible': request.form.get('visible') == 'on',
             'created_at': datetime.now().isoformat()
         }
         exercises.append(new_exercise)
@@ -98,6 +102,7 @@ def edit_exercise(exercise_id):
         exercise['muscle_groups'] = request.form.getlist('muscle_groups')
         exercise['difficulty'] = request.form.get('difficulty')
         exercise['video_url'] = request.form.get('video_url', '')
+        exercise['visible'] = request.form.get('visible') == 'on'
         save_data(exercises)
         return redirect(url_for('index'))
     
@@ -165,6 +170,20 @@ def edit_detailed_explanation(exercise_id):
         return redirect(url_for('edit_detailed_explanation', exercise_id=exercise_id))
     
     return render_template('edit_detailed_explanation.html', exercise=exercise, admin=session.get('admin', False))
+
+@app.route('/toggle-visibility/<int:exercise_id>', methods=['POST'])
+def toggle_visibility(exercise_id):
+    if not session.get('admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    exercises = load_data()
+    exercise = next((e for e in exercises if e['id'] == exercise_id), None)
+    if not exercise:
+        return jsonify({'error': 'Exercise not found'}), 404
+    
+    exercise['visible'] = not exercise.get('visible', True)
+    save_data(exercises)
+    return jsonify({'visible': exercise['visible']})
 
 @app.route('/upload_image', methods=['POST'])
 def upload_image():

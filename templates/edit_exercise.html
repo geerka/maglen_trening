@@ -247,6 +247,14 @@
                     <textarea id="description" name="description" required>{{ exercise.description }}</textarea>
                 </div>
 
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="visible" {% if exercise.get('visible', True) %}checked{% endif %}> 
+                        <strong>🟢 Cvik je viditeľný</strong>
+                    </label>
+                    <small style="display: block; color: #aaa; margin-top: 0.3rem;">Bez zaškrtnutia bude cvik skrytý pre bežných používateľov</small>
+                </div>
+
                 <div class="video-section">
                     <label>Video cviku</label>
                     
